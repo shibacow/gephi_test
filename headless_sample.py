@@ -32,7 +32,7 @@ def FilterController(lookup):
 def AppearanceController(lookup):
     return lookup(appearance.AppearanceController)
 
-def headlness():
+def headless():
     lookup = Lookup.getDefault().lookup
     pc =ProjectController(lookup)
     pc.newProject()
