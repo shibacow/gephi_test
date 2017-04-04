@@ -115,7 +115,7 @@ def headless():
     print("end to set preview")
     ec = ExportController(lookup)
     try:
-        ec.exportFile(File("headless_simple.pdf"))
+        ec.exportFile(File("resources/headless_simple.pdf"))
     except Exception,err:
         print(err)
 def main():
