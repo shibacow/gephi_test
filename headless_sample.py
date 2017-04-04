@@ -1,23 +1,21 @@
-#import org.gephi.profrom  import ProjectController
-#ProjectController().newProject()
-#workspace = ProjectController().getCurrentWorkspace()
-#print workspace
-
 import org.gephi.project.api as project
 from org.openide.util import Lookup
 import org.gephi.graph.api as graph
 import org.gephi.preview.api as preview
 import org.gephi.io.importer.api as importer
+import org.gephi.io.exporter.api as exporter
 import org.gephi.filters.api as filters
 import org.gephi.appearance.api as appearance
+import org.gephi.appearance.plugin as appearance_plugin
 from java.io import File
+from java.awt import Color
 import org.gephi.io.processor.plugin as processor
 import org.gephi.filters.plugin.graph.DegreeRangeBuilder as degree_range_builder
 import sys
 import org.gephi.layout.plugin.force as force
 import org.gephi.statistics.plugin as statistics
-#import org.gephi.io.importer.api.EdgeDirectionDefault
-from glob import glob
+import org.gephi.preview.types as preview_types
+
 
 def ProjectController(lookup):
     return lookup(project.ProjectController)
@@ -31,6 +29,8 @@ def FilterController(lookup):
     return lookup(filters.FilterController)
 def AppearanceController(lookup):
     return lookup(appearance.AppearanceController)
+def ExportController(lookup):
+    return lookup(exporter.ExportController)
 
 def headless():
     lookup = Lookup.getDefault().lookup
@@ -39,7 +39,7 @@ def headless():
     workspace = pc.getCurrentWorkspace()
     graph_model = GraphController(lookup).getGraphModel()
     print(graph_model)
-    preview_model = PreviewController(lookup)
+    preview_model = PreviewController(lookup).getModel()
     print(preview_model)
     import_controller = ImportController(lookup)
     print(import_controller)
@@ -87,13 +87,37 @@ def headless():
 
     #//Rank color by Degree
     #System.out.println("start color by Degree");
-    #Function degreeRanking = appearanceModel.getNodeFunction(graph, AppearanceModel.GraphFunction.NODE_DEGREE, RankingElementColorTransformer.class);
-    #RankingElementColorTransformer degreeTransformer = (RankingElementColorTransformer) degreeRanking.getTransformer();
-    #degreeTransformer.setColors(new Color[]{new Color(0xFEF0D9), new Color(0xB30000)});
-    #degreeTransformer.setColorPositions(new float[]{0f, 1f});
-    #appearanceController.transform(degreeRanking);
-    #System.out.println("end color by Degree");
+    print("start color by degree")
+    degreeRanking = appearance_model.getNodeFunction(graph, appearance_model.GraphFunction.NODE_DEGREE, appearance_plugin.RankingElementColorTransformer)
+    degreeTransformer = degreeRanking.getTransformer()
+    degreeTransformer.setColors([Color(0xFEF0D9),Color(0xB30000)])
+    degreeTransformer.setColorPositions([0.0,1.0])
+    AppearanceController(lookup).transform(degreeRanking)
+    print("end color degree")
 
+
+    #//Rank size by centrality
+    print("start size by centrallity")
+    centralityColumn = graph_model.getNodeTable().getColumn(statistics.GraphDistance.BETWEENNESS)
+    centralityRanking  = appearance_model.getNodeFunction(graph,centralityColumn,appearance_plugin.RankingNodeSizeTransformer)
+    centralityTransformer = centralityRanking.getTransformer()
+    centralityTransformer.setMinSize(3)
+    centralityTransformer.setMaxSize(10)
+    AppearanceController(lookup).transform(centralityRanking)
+    print("end size by centrality")
+
+    print("start to set preview")
+    preview_model.getProperties().putValue(preview.PreviewProperty.SHOW_NODE_LABELS,True)
+    preview_model.getProperties().putValue(preview.PreviewProperty.EDGE_COLOR,preview_types.EdgeColor(Color.GRAY))
+    preview_model.getProperties().putValue(preview.PreviewProperty.EDGE_THICKNESS,1.0)
+    preview_model.getProperties().putValue(preview.PreviewProperty.NODE_LABEL_FONT,
+                                           preview_model.getProperties().getFontValue(preview.PreviewProperty.NODE_LABEL_FONT).deriveFont(8))
+    print("end to set preview")
+    ec = ExportController(lookup)
+    try:
+        ec.exportFile(File("headless_simple.pdf"))
+    except Exception,err:
+        print(err)
 def main():
     headless()
 if __name__=='__main__':main()
